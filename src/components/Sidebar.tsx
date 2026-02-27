@@ -93,9 +93,15 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         flexShrink: 0,
       }}
     >
-      {/* Logo */}
+      {/* Logo — click to go back to landing */}
       <div style={{ padding: '24px 24px 20px' }}>
-        <PivotLogo />
+        <button
+          onClick={() => onNavigate('landing')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          title="Back to home"
+        >
+          <PivotLogo />
+        </button>
       </div>
 
       {/* Divider */}

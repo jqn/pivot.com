@@ -1,15 +1,22 @@
 import { useState } from 'react'
 import Sidebar from './components/Sidebar'
+import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Watchlist from './pages/Watchlist'
 import Signals from './pages/Signals'
 import Settings from './pages/Settings'
 
-export type Page = 'dashboard' | 'watchlist' | 'signals' | 'settings'
+export type Page = 'landing' | 'dashboard' | 'watchlist' | 'signals' | 'settings'
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard')
+  const [currentPage, setCurrentPage] = useState<Page>('landing')
 
+  // Landing page: full-width, no sidebar
+  if (currentPage === 'landing') {
+    return <Landing onNavigate={setCurrentPage} />
+  }
+
+  // App pages: sidebar + content layout
   return (
     <div
       style={{

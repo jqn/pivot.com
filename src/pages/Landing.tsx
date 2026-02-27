@@ -8,15 +8,9 @@ interface LandingProps {
 const LogoMark = ({ size = 36 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
     <rect width="36" height="36" rx="9" fill="#00E5A0" />
-    <polyline
-      points="5,27 10,23 15,25 20,17 29,10"
-      stroke="#0B0F1A"
-      strokeWidth="2.5"
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <circle cx="29" cy="10" r="3" fill="#0B0F1A" />
+    <g transform="translate(6, 30) scale(0.025)">
+      <path d="m136-240-56-56 296-298 160 160 208-206H640v-80h240v240h-80v-104L536-320 376-480 136-240Z" fill="#0B0F1A" />
+    </g>
   </svg>
 )
 

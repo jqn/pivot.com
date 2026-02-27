@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Page } from '../App'
 
 interface ToggleProps {
   enabled: boolean
@@ -106,7 +107,11 @@ function SettingCard({ title, label, description, enabled, onToggle, children }:
   )
 }
 
-export default function Settings() {
+interface SettingsProps {
+  onNavigate: (page: Page) => void
+}
+
+export default function Settings({ onNavigate }: SettingsProps) {
   const [rsiEnabled, setRsiEnabled] = useState(true)
   const [rsiThreshold, setRsiThreshold] = useState(30)
   const [smaEnabled, setSmaEnabled] = useState(true)
@@ -367,6 +372,85 @@ export default function Settings() {
       >
         {saved ? '✓ Saved' : 'Save Settings'}
       </button>
+
+      {/* Resources */}
+      <div style={{ marginTop: '40px' }}>
+        <div
+          style={{
+            fontFamily: "'Sora', sans-serif",
+            fontSize: '11px',
+            fontWeight: '600',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: 'var(--neutral-600)',
+            marginBottom: '12px',
+          }}
+        >
+          Resources
+        </div>
+        <button
+          onClick={() => onNavigate('brand-kit')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            background: 'var(--ink-mid)',
+            border: '1px solid var(--ink-soft)',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            cursor: 'pointer',
+            textAlign: 'left',
+            transition: 'border-color 0.15s',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '9px',
+                background: 'rgba(0,229,160,0.12)',
+                border: '1px solid rgba(0,229,160,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--signal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4M12 16h.01" />
+              </svg>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontFamily: "'Sora', sans-serif",
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: 'var(--white)',
+                  marginBottom: '2px',
+                }}
+              >
+                Brand Kit
+              </div>
+              <div
+                style={{
+                  fontFamily: "'Sora', sans-serif",
+                  fontSize: '12px',
+                  color: 'var(--neutral-600)',
+                }}
+              >
+                Colors, typography, and logo assets
+              </div>
+            </div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--neutral-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
     </div>
   )
 }

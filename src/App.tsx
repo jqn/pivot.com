@@ -5,8 +5,9 @@ import Dashboard from './pages/Dashboard'
 import Watchlist from './pages/Watchlist'
 import Signals from './pages/Signals'
 import Settings from './pages/Settings'
+import BrandKit from './pages/BrandKit'
 
-export type Page = 'landing' | 'dashboard' | 'watchlist' | 'signals' | 'settings'
+export type Page = 'landing' | 'dashboard' | 'watchlist' | 'signals' | 'settings' | 'brand-kit'
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing')
@@ -39,7 +40,8 @@ export default function App() {
         {currentPage === 'dashboard' && <Dashboard onNavigate={setCurrentPage} />}
         {currentPage === 'watchlist' && <Watchlist />}
         {currentPage === 'signals' && <Signals />}
-        {currentPage === 'settings' && <Settings />}
+        {currentPage === 'settings' && <Settings onNavigate={setCurrentPage} />}
+        {currentPage === 'brand-kit' && <BrandKit onNavigate={setCurrentPage} />}
       </main>
     </div>
   )

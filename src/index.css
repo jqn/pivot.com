@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #0B0F1A;
+  --ink-mid: #1E2535;
+  --ink-soft: #2E3A50;
+  --signal: #00E5A0;
+  --signal-dim: #00C48A;
+  --warn: #FF6B35;
+  --neutral-100: #F4F6FA;
+  --neutral-200: #E2E8F0;
+  --neutral-400: #94A3B8;
+  --neutral-600: #64748B;
+  --white: #FFFFFF;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Sora', sans-serif;
+  background-color: var(--ink);
+  color: var(--white);
+  overflow: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'DM Serif Display', serif;
+  margin: 0;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-soft);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neutral-600);
+}
+
+/* Shared interactive states */
+.trash-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--neutral-600);
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+.trash-btn:hover {
+  color: var(--warn);
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  text-align: left;
+  margin-bottom: 2px;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-item:hover {
+  background: rgba(30, 37, 53, 0.8);
+  color: var(--white);
+}
+
+.signal-btn {
+  transition: opacity 0.15s;
+}
+.signal-btn:hover {
+  opacity: 0.88;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--signal) !important;
+  box-shadow: 0 0 0 2px rgba(0, 229, 160, 0.15);
+}
+
+.table-row-even {
+  background: var(--ink-mid);
+}
+.table-row-odd {
+  background: rgba(46, 58, 80, 0.25);
+}
+.table-row-even:hover,
+.table-row-odd:hover {
+  background: rgba(46, 58, 80, 0.6);
+}

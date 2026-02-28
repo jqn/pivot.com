@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { mockSignals } from '../data/mockData'
+import { useWatchlistStore } from '../store/watchlistStore'
 
 const SearchIcon = () => (
   <svg
@@ -18,108 +18,167 @@ const SearchIcon = () => (
   </svg>
 )
 
+function formatTriggeredAt(iso: string): string {
+  const date = new Date(iso)
+  const now = new Date()
+  const isToday = date.toDateString() === now.toDateString()
+  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  if (isToday) return time
+  return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${time}`
+}
+
 export default function Signals() {
+  const signalLog = useWatchlistStore((s) => s.signalLog)
+  const clearSignalLog = useWatchlistStore((s) => s.clearSignalLog)
   const [filter, setFilter] = useState('')
   const [inputFocused, setInputFocused] = useState(false)
 
-  const filteredSignals = mockSignals.filter((s) =>
+  const filteredSignals = signalLog.filter((s) =>
     s.symbol.toLowerCase().includes(filter.toLowerCase().trim())
   )
+
+  const isEmpty = signalLog.length === 0
+  const noResults = !isEmpty && filteredSignals.length === 0
 
   return (
     <div style={{ padding: '36px 40px' }}>
       {/* Heading */}
-      <div style={{ marginBottom: '28px' }}>
-        <h1
-          style={{
-            fontFamily: "'DM Serif Display', serif",
-            fontSize: '32px',
-            color: 'var(--white)',
-            marginBottom: '4px',
-          }}
-        >
-          Signal History
-        </h1>
-        <p
-          style={{
-            fontFamily: "'Sora', sans-serif",
-            fontSize: '13px',
-            color: 'var(--neutral-600)',
-          }}
-        >
-          All buy signals triggered by your configured conditions
-        </p>
-      </div>
-
-      {/* Filter row */}
-      <div style={{ marginBottom: '24px' }}>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '10px',
-            background: 'var(--ink-mid)',
-            border: `1px solid ${inputFocused ? 'var(--signal)' : 'var(--ink-soft)'}`,
-            borderRadius: '9px',
-            padding: '0 14px',
-            transition: 'border-color 0.15s',
-            boxShadow: inputFocused ? '0 0 0 2px rgba(0,229,160,0.12)' : 'none',
-          }}
-        >
-          <SearchIcon />
-          <input
-            type="text"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => setInputFocused(false)}
-            placeholder="Filter by ticker…"
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '28px',
+        }}
+      >
+        <div>
+          <h1
             style={{
-              background: 'none',
-              border: 'none',
-              outline: 'none',
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: '32px',
               color: 'var(--white)',
-              fontFamily: "'DM Mono', monospace",
-              fontSize: '14px',
-              padding: '11px 0',
-              width: '200px',
+              marginBottom: '4px',
             }}
-          />
-          {filter && (
-            <button
-              onClick={() => setFilter('')}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--neutral-600)',
-                padding: '2px',
-                display: 'flex',
-                alignItems: 'center',
-                fontSize: '16px',
-                lineHeight: 1,
-              }}
-            >
-              ×
-            </button>
-          )}
-        </div>
-        {filter && (
-          <span
+          >
+            Signal History
+          </h1>
+          <p
             style={{
-              marginLeft: '12px',
               fontFamily: "'Sora', sans-serif",
               fontSize: '13px',
               color: 'var(--neutral-600)',
             }}
           >
-            {filteredSignals.length} result{filteredSignals.length !== 1 ? 's' : ''} for &ldquo;{filter}&rdquo;
-          </span>
+            {isEmpty
+              ? 'Signals will appear here when conditions are met'
+              : `${signalLog.length} signal${signalLog.length !== 1 ? 's' : ''} recorded`}
+          </p>
+        </div>
+        {!isEmpty && (
+          <button
+            onClick={clearSignalLog}
+            style={{
+              background: 'none',
+              border: '1px solid var(--ink-soft)',
+              borderRadius: '8px',
+              padding: '8px 14px',
+              fontFamily: "'Sora', sans-serif",
+              fontSize: '13px',
+              color: 'var(--neutral-600)',
+              cursor: 'pointer',
+            }}
+          >
+            Clear history
+          </button>
         )}
       </div>
 
-      {/* Signal cards */}
-      {filteredSignals.length === 0 ? (
+      {/* Filter row */}
+      {!isEmpty && (
+        <div style={{ marginBottom: '24px' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              background: 'var(--ink-mid)',
+              border: `1px solid ${inputFocused ? 'var(--signal)' : 'var(--ink-soft)'}`,
+              borderRadius: '9px',
+              padding: '0 14px',
+              transition: 'border-color 0.15s',
+              boxShadow: inputFocused ? '0 0 0 2px rgba(0,229,160,0.12)' : 'none',
+            }}
+          >
+            <SearchIcon />
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              placeholder="Filter by ticker…"
+              style={{
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--white)',
+                fontFamily: "'DM Mono', monospace",
+                fontSize: '14px',
+                padding: '11px 0',
+                width: '200px',
+              }}
+            />
+            {filter && (
+              <button
+                onClick={() => setFilter('')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--neutral-600)',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '16px',
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+          {filter && (
+            <span
+              style={{
+                marginLeft: '12px',
+                fontFamily: "'Sora', sans-serif",
+                fontSize: '13px',
+                color: 'var(--neutral-600)',
+              }}
+            >
+              {filteredSignals.length} result{filteredSignals.length !== 1 ? 's' : ''} for &ldquo;{filter}&rdquo;
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {isEmpty && (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '80px 20px',
+            color: 'var(--neutral-600)',
+            fontFamily: "'Sora', sans-serif",
+            fontSize: '14px',
+          }}
+        >
+          No signals yet — keep the app running and signals will be logged here when your conditions align.
+        </div>
+      )}
+
+      {/* No filter results */}
+      {noResults && (
         <div
           style={{
             textAlign: 'center',
@@ -131,7 +190,10 @@ export default function Signals() {
         >
           No signals matching &ldquo;{filter}&rdquo;
         </div>
-      ) : (
+      )}
+
+      {/* Signal cards */}
+      {filteredSignals.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {filteredSignals.map((signal) => (
             <div
@@ -189,7 +251,7 @@ export default function Signals() {
                     color: 'var(--neutral-400)',
                   }}
                 >
-                  {signal.triggeredAt}
+                  {formatTriggeredAt(signal.triggeredAt)}
                 </span>
               </div>
 

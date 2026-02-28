@@ -1,5 +1,7 @@
-import { useState } from 'react'
-import { mockWatchlist, WatchlistItem } from '../data/mockData'
+import { useState, useEffect, useRef } from 'react'
+import { WatchlistItem } from '../data/mockData'
+import { useWatchlistStore } from '../store/watchlistStore'
+import { searchSymbols, SearchResult } from '../lib/finnhub'
 
 const TrashIcon = () => (
   <svg
@@ -19,61 +21,58 @@ const TrashIcon = () => (
   </svg>
 )
 
-const PlusIcon = () => (
-  <svg
-    width="15"
-    height="15"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-  >
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-)
 
 export default function Watchlist() {
-  const [stocks, setStocks] = useState<WatchlistItem[]>(mockWatchlist)
-  const [newTicker, setNewTicker] = useState('')
+  const { stocks, loading, addSymbol, removeSymbol } = useWatchlistStore()
+  const stockList = Object.values(stocks)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [searching, setSearching] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (query.length < 2) { setResults([]); return }
+    const timer = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const data = await searchSymbols(query)
+        setResults(data)
+      } catch {
+        setResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [query])
 
-  function handleAddStock(e: React.FormEvent) {
+  function handleSelect(symbol: string) {
+    setQuery(symbol)
+    setResults([])
+    inputRef.current?.focus()
+  }
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const sym = newTicker.trim().toUpperCase()
+    const sym = query.trim().toUpperCase()
     if (!sym) return
-    const newStock: WatchlistItem = {
-      symbol: sym,
-      name: `${sym} Corporation`,
-      price: Math.round((Math.random() * 400 + 20) * 100) / 100,
-      changePercent: Math.round((Math.random() * 10 - 5) * 100) / 100,
-      rsi: Math.round((Math.random() * 50 + 25) * 10) / 10,
-      smaAbove: Math.random() > 0.5,
-      macdCross: Math.random() > 0.5,
-      signalActive: false,
-    }
-    setStocks((prev) => [...prev, newStock])
-    setNewTicker('')
+    addSymbol(sym)
+    setQuery('')
+    setResults([])
   }
 
   function handleRemove(symbol: string) {
-    setStocks((prev) => prev.filter((s) => s.symbol !== symbol))
+    removeSymbol(symbol)
   }
+
+  const showDropdown = inputFocused && (results.length > 0 || searching)
 
   const columns = ['Ticker', 'Company', 'Price', 'Change', 'RSI', '50-day MA', 'MACD', '']
 
   return (
     <div style={{ padding: '36px 40px' }}>
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '32px',
-        }}
-      >
+      <div style={{ marginBottom: '32px' }}>
         <div>
           <h1
             style={{
@@ -92,33 +91,9 @@ export default function Watchlist() {
               color: 'var(--neutral-600)',
             }}
           >
-            {stocks.length} stocks tracked
+            {loading ? 'Loading…' : `${stockList.length} stocks tracked`}
           </p>
         </div>
-        <button
-          onClick={() => {
-            const input = document.getElementById('add-stock-input')
-            input?.focus()
-          }}
-          className="signal-btn"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '7px',
-            background: 'var(--signal)',
-            color: 'var(--ink)',
-            border: 'none',
-            borderRadius: '9px',
-            padding: '10px 18px',
-            fontFamily: "'Sora', sans-serif",
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-          }}
-        >
-          <PlusIcon />
-          Add Stock
-        </button>
       </div>
 
       {/* Table */}
@@ -155,13 +130,13 @@ export default function Watchlist() {
             </tr>
           </thead>
           <tbody>
-            {stocks.map((stock, i) => (
+            {stockList.map((stock, i) => (
               <tr
                 key={`${stock.symbol}-${i}`}
                 className={i % 2 === 0 ? 'table-row-even' : 'table-row-odd'}
                 style={{
                   borderBottom:
-                    i < stocks.length - 1 ? '1px solid rgba(46,58,80,0.4)' : 'none',
+                    i < stockList.length - 1 ? '1px solid rgba(46,58,80,0.4)' : 'none',
                   transition: 'background 0.1s',
                 }}
               >
@@ -295,50 +270,128 @@ export default function Watchlist() {
         >
           Add a stock to your watchlist
         </p>
-        <form onSubmit={handleAddStock} style={{ display: 'flex', gap: '12px', maxWidth: '480px' }}>
-          <input
-            id="add-stock-input"
-            type="text"
-            value={newTicker}
-            onChange={(e) => setNewTicker(e.target.value)}
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => setInputFocused(false)}
-            placeholder="Enter ticker e.g. AAPL"
-            maxLength={6}
-            style={{
-              flex: 1,
-              padding: '11px 16px',
-              background: 'var(--ink)',
-              border: `1px solid ${inputFocused ? 'var(--signal)' : 'var(--ink-soft)'}`,
-              borderRadius: '9px',
-              color: 'var(--white)',
-              fontFamily: "'DM Mono', monospace",
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'border-color 0.15s',
-              boxShadow: inputFocused ? '0 0 0 2px rgba(0,229,160,0.12)' : 'none',
-            }}
-          />
-          <button
-            type="submit"
-            className="signal-btn"
-            style={{
-              padding: '11px 22px',
-              background: 'var(--signal)',
-              color: 'var(--ink)',
-              border: 'none',
-              borderRadius: '9px',
-              fontFamily: "'Sora', sans-serif",
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            + Add Stock
-          </button>
+        <form onSubmit={handleSubmit} style={{ position: 'relative', maxWidth: '480px' }}>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <input
+              ref={inputRef}
+              id="add-stock-input"
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              placeholder="Search ticker or company name…"
+              autoComplete="off"
+              style={{
+                flex: 1,
+                padding: '11px 16px',
+                background: 'var(--ink)',
+                border: `1px solid ${inputFocused ? 'var(--signal)' : 'var(--ink-soft)'}`,
+                borderRadius: '9px',
+                color: 'var(--white)',
+                fontFamily: "'Sora', sans-serif",
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'border-color 0.15s',
+                boxShadow: inputFocused ? '0 0 0 2px rgba(0,229,160,0.12)' : 'none',
+              }}
+            />
+            <button
+              type="submit"
+              className="signal-btn"
+              style={{
+                padding: '11px 22px',
+                background: 'var(--signal)',
+                color: 'var(--ink)',
+                border: 'none',
+                borderRadius: '9px',
+                fontFamily: "'Sora', sans-serif",
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              + Add
+            </button>
+          </div>
+
+          {/* Search dropdown */}
+          {showDropdown && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                left: 0,
+                right: '90px',
+                background: 'var(--ink-mid)',
+                border: '1px solid var(--ink-soft)',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                zIndex: 50,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              }}
+            >
+              {searching && (
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    fontFamily: "'Sora', sans-serif",
+                    fontSize: '13px',
+                    color: 'var(--neutral-600)',
+                  }}
+                >
+                  Searching…
+                </div>
+              )}
+              {!searching && results.map((r) => (
+                <button
+                  key={r.symbol}
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); handleSelect(r.symbol) }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: '100%',
+                    padding: '11px 16px',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: '1px solid rgba(46,58,80,0.4)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                  className="search-result-row"
+                >
+                  <span
+                    style={{
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: '13px',
+                      color: 'var(--signal)',
+                      minWidth: '52px',
+                    }}
+                  >
+                    {r.symbol}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Sora', sans-serif",
+                      fontSize: '13px',
+                      color: 'var(--neutral-400)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {r.description}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </form>
       </div>
+
     </div>
   )
 }

@@ -1,4 +1,7 @@
-import { mockWatchlist, mockSignals, WatchlistItem, SignalItem } from '../data/mockData'
+import { useState, useEffect } from 'react'
+import { WatchlistItem, SignalItem } from '../data/mockData'
+import { useWatchlistStore } from '../store/watchlistStore'
+import { getMarketNews, NewsItem, getRecommendations, Recommendation } from '../lib/finnhub'
 import { Page } from '../App'
 
 function formatChange(change: number): string {
@@ -292,10 +295,80 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
-  const activeSymbols = new Set(
-    mockWatchlist.filter((w) => w.signalActive).map((w) => w.symbol)
-  )
-  const activeSignals = mockSignals.filter((s) => activeSymbols.has(s.symbol))
+  const stocks = useWatchlistStore((s) => s.stocks)
+  const loading = useWatchlistStore((s) => s.loading)
+  const error = useWatchlistStore((s) => s.error)
+  const stockList = Object.values(stocks)
+  const [news, setNews] = useState<NewsItem[]>([])
+  const [recommendations, setRecommendations] = useState<Record<string, Recommendation>>({})
+
+  useEffect(() => {
+    getMarketNews().then((items) => setNews(items.slice(0, 8))).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!stockList.length) return
+    Promise.allSettled(
+      stockList.map((s) => getRecommendations(s.symbol).then((data) => ({ symbol: s.symbol, data })))
+    ).then((results) => {
+      const map: Record<string, Recommendation> = {}
+      results.forEach((r) => {
+        if (r.status === 'fulfilled' && r.value.data.length) {
+          map[r.value.symbol] = r.value.data[0]
+        }
+      })
+      setRecommendations(map)
+    })
+  }, [stockList.length])
+  const activeSignals: SignalItem[] = stockList
+    .filter((s) => s.signalActive)
+    .map((s) => ({
+      id: s.symbol,
+      symbol: s.symbol,
+      name: s.name,
+      price: s.price,
+      triggeredAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      conditions: [
+        s.rsi < 30 ? `RSI dropped below 30 → ${s.rsi.toFixed(1)}` : null,
+        s.smaAbove ? 'Price crossed above 50-day MA' : null,
+        s.macdCross ? 'MACD bullish crossover' : null,
+      ].filter(Boolean) as string[],
+    }))
+
+  if (error) {
+    return (
+      <div style={{ padding: '36px 40px' }}>
+        <div
+          style={{
+            background: 'rgba(255,107,53,0.1)',
+            border: '1px solid rgba(255,107,53,0.3)',
+            borderRadius: '12px',
+            padding: '20px 24px',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: '13px',
+            color: 'var(--warn)',
+          }}
+        >
+          Failed to load market data: {error}
+        </div>
+      </div>
+    )
+  }
+
+  if (loading && stockList.length === 0) {
+    return (
+      <div
+        style={{
+          padding: '36px 40px',
+          color: 'var(--neutral-600)',
+          fontFamily: "'Sora', sans-serif",
+          fontSize: '14px',
+        }}
+      >
+        Loading market data…
+      </div>
+    )
+  }
 
   return (
     <div style={{ padding: '36px 40px', minHeight: '100%' }}>
@@ -327,11 +400,11 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 color: 'var(--neutral-600)',
               }}
             >
-              {mockWatchlist.length} stocks tracked
+              {stockList.length} stocks tracked
             </p>
           </div>
           <div>
-            {mockWatchlist.map((stock) => (
+            {stockList.map((stock) => (
               <WatchlistCard key={stock.symbol} stock={stock} />
             ))}
           </div>
@@ -371,6 +444,224 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Recommendation Trends */}
+      {Object.keys(recommendations).length > 0 && (
+        <div style={{ marginTop: '48px' }}>
+          <h2
+            style={{
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: '28px',
+              color: 'var(--white)',
+              marginBottom: '6px',
+            }}
+          >
+            Analyst Recommendations
+          </h2>
+          <p
+            style={{
+              fontFamily: "'Sora', sans-serif",
+              fontSize: '13px',
+              color: 'var(--neutral-600)',
+              marginBottom: '24px',
+            }}
+          >
+            Most recent analyst consensus for watched stocks
+          </p>
+
+          {/* Legend */}
+          <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Strong Buy', color: '#00e5a0' },
+              { label: 'Buy',        color: '#5de8c1' },
+              { label: 'Hold',       color: '#4a5568' },
+              { label: 'Sell',       color: '#f97316' },
+              { label: 'Strong Sell',color: '#ff6b35' },
+            ].map(({ label, color }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: color, flexShrink: 0 }} />
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--neutral-400)' }}>
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div
+            style={{
+              background: 'var(--ink-mid)',
+              borderRadius: '14px',
+              border: '1px solid var(--ink-soft)',
+              overflow: 'hidden',
+            }}
+          >
+            {stockList
+              .filter((s) => recommendations[s.symbol])
+              .map((s, i, arr) => {
+                const rec = recommendations[s.symbol]
+                const total = rec.strongBuy + rec.buy + rec.hold + rec.sell + rec.strongSell
+                if (total === 0) return null
+                const pct = (n: number) => `${((n / total) * 100).toFixed(1)}%`
+                const segments = [
+                  { key: 'strongBuy', value: rec.strongBuy, color: '#00e5a0' },
+                  { key: 'buy',       value: rec.buy,       color: '#5de8c1' },
+                  { key: 'hold',      value: rec.hold,      color: '#4a5568' },
+                  { key: 'sell',      value: rec.sell,      color: '#f97316' },
+                  { key: 'strongSell',value: rec.strongSell,color: '#ff6b35' },
+                ]
+                return (
+                  <div
+                    key={s.symbol}
+                    style={{
+                      padding: '16px 20px',
+                      borderBottom: i < arr.length - 1 ? '1px solid rgba(46,58,80,0.4)' : 'none',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      {/* Symbol */}
+                      <span
+                        style={{
+                          fontFamily: "'DM Mono', monospace",
+                          fontSize: '13px',
+                          color: 'var(--white)',
+                          width: '52px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {s.symbol}
+                      </span>
+
+                      {/* Stacked bar */}
+                      <div
+                        style={{
+                          flex: 1,
+                          height: '20px',
+                          borderRadius: '5px',
+                          overflow: 'hidden',
+                          display: 'flex',
+                        }}
+                        title={`Strong Buy: ${rec.strongBuy} · Buy: ${rec.buy} · Hold: ${rec.hold} · Sell: ${rec.sell} · Strong Sell: ${rec.strongSell}`}
+                      >
+                        {segments.filter((seg) => seg.value > 0).map((seg) => (
+                          <div
+                            key={seg.key}
+                            style={{
+                              width: pct(seg.value),
+                              background: seg.color,
+                              transition: 'width 0.4s ease',
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Total analysts */}
+                      <span
+                        style={{
+                          fontFamily: "'DM Mono', monospace",
+                          fontSize: '11px',
+                          color: 'var(--neutral-600)',
+                          width: '48px',
+                          textAlign: 'right',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {total} analysts
+                      </span>
+                    </div>
+
+                    {/* Period */}
+                    <div
+                      style={{
+                        fontFamily: "'DM Mono', monospace",
+                        fontSize: '10px',
+                        color: 'var(--neutral-600)',
+                        marginTop: '6px',
+                        paddingLeft: '68px',
+                      }}
+                    >
+                      {new Date(rec.period).toLocaleDateString([], { month: 'long', year: 'numeric' })}
+                      {rec.strongBuy > 0 && ` · ${pct(rec.strongBuy + rec.buy)} bullish`}
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* Market News */}
+      {news.length > 0 && (
+        <div style={{ marginTop: '48px' }}>
+          <h2
+            style={{
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: '28px',
+              color: 'var(--white)',
+              marginBottom: '16px',
+            }}
+          >
+            Market News
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: 'var(--ink-soft)', borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--ink-soft)' }}>
+            {news.map((item) => (
+              <a
+                key={item.id}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  gap: '16px',
+                  padding: '16px 20px',
+                  background: 'var(--ink-mid)',
+                  textDecoration: 'none',
+                  transition: 'background 0.1s',
+                }}
+                className="news-row"
+              >
+                {item.image && (
+                  <img
+                    src={item.image}
+                    alt=""
+                    style={{
+                      width: '64px',
+                      height: '48px',
+                      objectFit: 'cover',
+                      borderRadius: '6px',
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p
+                    style={{
+                      fontFamily: "'Sora', sans-serif",
+                      fontSize: '14px',
+                      color: 'var(--white)',
+                      fontWeight: '500',
+                      marginBottom: '4px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.headline}
+                  </p>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--signal)' }}>
+                      {item.source}
+                    </span>
+                    <span style={{ color: 'var(--ink-soft)', fontSize: '10px' }}>·</span>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--neutral-600)' }}>
+                      {new Date(item.datetime * 1000).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

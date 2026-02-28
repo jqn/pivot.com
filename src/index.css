@@ -122,3 +122,12 @@ input:focus {
 .table-row-odd:hover {
   background: rgba(46, 58, 80, 0.6);
 }
+.search-result-row:hover {
+  background: rgba(46, 58, 80, 0.6);
+}
+.search-result-row:last-child {
+  border-bottom: none;
+}
+.news-row:hover {
+  background: rgba(46, 58, 80, 0.8) !important;
+}

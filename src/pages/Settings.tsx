@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Page } from '../App'
+import { useSettingsStore } from '../store/settingsStore'
 
 interface ToggleProps {
   enabled: boolean
@@ -112,10 +113,10 @@ interface SettingsProps {
 }
 
 export default function Settings({ onNavigate }: SettingsProps) {
-  const [rsiEnabled, setRsiEnabled] = useState(true)
-  const [rsiThreshold, setRsiThreshold] = useState(30)
-  const [smaEnabled, setSmaEnabled] = useState(true)
-  const [macdEnabled, setMacdEnabled] = useState(true)
+  const {
+    rsiEnabled, rsiThreshold, smaEnabled, macdEnabled,
+    toggleRsi, setRsiThreshold, toggleSma, toggleMacd,
+  } = useSettingsStore()
   const [saved, setSaved] = useState(false)
 
   function handleSave() {
@@ -188,7 +189,7 @@ export default function Settings({ onNavigate }: SettingsProps) {
           label="RSI below threshold"
           description="Triggers when RSI drops below the value you set — indicating oversold conditions."
           enabled={rsiEnabled}
-          onToggle={() => setRsiEnabled((v) => !v)}
+          onToggle={toggleRsi}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <label
@@ -231,7 +232,7 @@ export default function Settings({ onNavigate }: SettingsProps) {
           label="Price above 50-day MA"
           description="Triggers when the stock price crosses above its 50-day moving average."
           enabled={smaEnabled}
-          onToggle={() => setSmaEnabled((v) => !v)}
+          onToggle={toggleSma}
         />
 
         {/* MACD */}
@@ -240,7 +241,7 @@ export default function Settings({ onNavigate }: SettingsProps) {
           label="MACD bullish crossover"
           description="Triggers when the MACD line crosses above the signal line."
           enabled={macdEnabled}
-          onToggle={() => setMacdEnabled((v) => !v)}
+          onToggle={toggleMacd}
         />
       </div>
 

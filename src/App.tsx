@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
+import { useWatchlistStore } from './store/watchlistStore'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Watchlist from './pages/Watchlist'
@@ -11,6 +12,13 @@ export type Page = 'landing' | 'dashboard' | 'watchlist' | 'signals' | 'settings
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing')
+  const startPolling = useWatchlistStore((s) => s.startPolling)
+  const stopPolling = useWatchlistStore((s) => s.stopPolling)
+
+  useEffect(() => {
+    startPolling()
+    return () => stopPolling()
+  }, [startPolling, stopPolling])
 
   // Landing page: full-width, no sidebar
   if (currentPage === 'landing') {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Toaster } from 'sonner'
 import Sidebar from './components/Sidebar'
 import { useWatchlistStore } from './store/watchlistStore'
 import Landing from './pages/Landing'
@@ -20,9 +21,32 @@ export default function App() {
     return () => stopPolling()
   }, [startPolling, stopPolling])
 
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
+
   // Landing page: full-width, no sidebar
   if (currentPage === 'landing') {
-    return <Landing onNavigate={setCurrentPage} />
+    return (
+      <>
+        <Toaster
+          position="bottom-right"
+          theme="dark"
+          toastOptions={{
+            style: {
+              background: 'var(--ink-mid)',
+              border: '1px solid rgba(0,229,160,0.25)',
+              color: 'var(--white)',
+              fontFamily: "'Sora', sans-serif",
+              fontSize: '13px',
+            },
+          }}
+        />
+        <Landing onNavigate={setCurrentPage} />
+      </>
+    )
   }
 
   // App pages: sidebar + content layout
@@ -36,6 +60,19 @@ export default function App() {
         background: 'var(--ink)',
       }}
     >
+      <Toaster
+        position="bottom-right"
+        theme="dark"
+        toastOptions={{
+          style: {
+            background: 'var(--ink-mid)',
+            border: '1px solid rgba(0,229,160,0.25)',
+            color: 'var(--white)',
+            fontFamily: "'Sora', sans-serif",
+            fontSize: '13px',
+          },
+        }}
+      />
       <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
       <main
         style={{

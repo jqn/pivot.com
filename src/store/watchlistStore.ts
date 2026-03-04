@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { toast } from 'sonner'
 import { getQuote, getCompanyProfile, computeIndicators } from '../lib/finnhub'
 import { getTimeSeries } from '../lib/twelvedata'
 import { useSettingsStore } from './settingsStore'
@@ -113,6 +114,15 @@ export const useWatchlistStore = create<WatchlistState>()(
           const signalActive = computeSignal(rsi, smaAbove, macdCross)
           const wasActive = existing?.signalActive ?? false
 
+          if (signalActive && !wasActive) {
+            const conditions = buildConditions(rsi, smaAbove, macdCross)
+            const body = `$${price.toFixed(2)} · ${conditions.join(', ')}`
+            toast.success(`${symbol} signal triggered`, { description: body })
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification(`${symbol} buy signal triggered`, { body, icon: '/favicon.svg' })
+            }
+          }
+
           set((state) => {
             const newLog =
               signalActive && !wasActive
@@ -150,6 +160,15 @@ export const useWatchlistStore = create<WatchlistState>()(
           const { rsi, macdCross } = existing
           const signalActive = computeSignal(rsi, smaAbove, macdCross)
           const wasActive = existing.signalActive
+
+          if (signalActive && !wasActive) {
+            const conditions = buildConditions(rsi, smaAbove, macdCross)
+            const body = `$${price.toFixed(2)} · ${conditions.join(', ')}`
+            toast.success(`${symbol} signal triggered`, { description: body })
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification(`${symbol} buy signal triggered`, { body, icon: '/favicon.svg' })
+            }
+          }
 
           set((state) => {
             const newLog =

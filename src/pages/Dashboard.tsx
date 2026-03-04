@@ -298,6 +298,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const stocks = useWatchlistStore((s) => s.stocks)
   const loading = useWatchlistStore((s) => s.loading)
   const error = useWatchlistStore((s) => s.error)
+  const signalLog = useWatchlistStore((s) => s.signalLog)
   const stockList = Object.values(stocks)
   const [news, setNews] = useState<NewsItem[]>([])
   const [recommendations, setRecommendations] = useState<Record<string, Recommendation>>({})
@@ -430,17 +431,44 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 color: 'var(--neutral-600)',
               }}
             >
-              {activeSignals.length} buy signals triggered
+              {activeSignals.length > 0
+                ? `${activeSignals.length} buy signals triggered`
+                : signalLog.length > 0
+                ? 'Last triggered signal'
+                : 'No signals yet'}
             </p>
           </div>
           <div>
-            {activeSignals.map((signal) => (
-              <SignalCard
-                key={signal.id}
-                signal={signal}
-                onViewDetails={() => onNavigate('signals')}
-              />
-            ))}
+            {activeSignals.length > 0
+              ? activeSignals.map((signal) => (
+                  <SignalCard
+                    key={signal.id}
+                    signal={signal}
+                    onViewDetails={() => onNavigate('signals')}
+                  />
+                ))
+              : signalLog.length > 0
+              ? (
+                  <SignalCard
+                    signal={signalLog[0]}
+                    onViewDetails={() => onNavigate('signals')}
+                  />
+                )
+              : (
+                  <div
+                    style={{
+                      background: 'var(--ink-mid)',
+                      borderRadius: '16px',
+                      padding: '40px 24px',
+                      textAlign: 'center',
+                      border: '1px dashed var(--ink-soft)',
+                    }}
+                  >
+                    <p style={{ fontFamily: "'Sora', sans-serif", fontSize: '13px', color: 'var(--neutral-600)', margin: 0 }}>
+                      No signals triggered yet
+                    </p>
+                  </div>
+                )}
           </div>
         </div>
       </div>
